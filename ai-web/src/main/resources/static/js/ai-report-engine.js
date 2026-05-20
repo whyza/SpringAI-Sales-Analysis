@@ -114,7 +114,7 @@ function showLoading(show) {
   if (show) {
     document.getElementById('resultContent').classList.remove('show');
     resetProgress();
-    var date = currentData.reportDate || new Date().toISOString().slice(0,10);
+    var date = currentData.reportDate || getYesterdayStr();
     var el = document.getElementById('progressDataDate');
     if (el) el.textContent = date;
     startProgressHeadlineAnimation();
@@ -142,7 +142,8 @@ function updateDataDisplay(d) {
     document.getElementById('dispYestNoOrder').textContent = '-';
     return;
   }
-  document.getElementById('dispDate').textContent = d.reportDate || new Date().toISOString().slice(0,10);
+  // 获取昨天日期（标准写法）
+  document.getElementById('dispDate').textContent = d.reportDate || getYesterdayStr();
   document.getElementById('dispTodayRev').textContent = '¥' + fmtNum(d.todayRevenue);
   document.getElementById('dispYestRev').textContent = '¥' + fmtNum(d.yesterdayRevenue);
   document.getElementById('dispTodayOrd').textContent = fmtNum(d.todayOrders);
@@ -158,7 +159,7 @@ function updateDataDisplay(d) {
 async function loadDemo(key) {
   var demo = demos[key];
   if (!demo) return;
-  var today = new Date().toISOString().slice(0,10);
+  var today = getYesterdayStr();
   currentData = { reportDate: today };
   for (var k in demo) { currentData[k] = demo[k]; }
   updateDataDisplay(demo);
@@ -197,7 +198,7 @@ async function loadConfig() {
         if (r.g2Threshold != null) document.getElementById('g2Threshold').value = r.g2Threshold;
       }
     }
-    var today = new Date().toISOString().slice(0,10);
+    var today = getYesterdayStr();
     var bizResp = await fetch(API_BASE + '/smart-report/config/load?date=' + today);
     if (bizResp.ok) {
       var bizData = await bizResp.json();
@@ -238,7 +239,7 @@ async function analyze() {
 
   if (currentData.todayRevenue == null) {
     var demo = demos.green;
-    var today = new Date().toISOString().slice(0,10);
+    var today = getYesterdayStr();
     currentData = { reportDate: today };
     for (var k in demo) { currentData[k] = demo[k]; }
     updateDataDisplay(demo);
@@ -401,7 +402,7 @@ function renderResult(data) {
   resultContent.classList.add('show');
 
   // 分析完成后发送消息
-  var msgDate = currentData.reportDate || new Date().toISOString().slice(0, 10);
+  var msgDate = currentData.reportDate || getYesterdayStr();
   try {
     fetch(API_BASE + '/sales/sendMsg?date=' + msgDate, {
       method: 'POST',
@@ -534,12 +535,15 @@ function showToast(msg, isError) {
   setTimeout(function() { t.className = 'toast'; }, 2800);
 }
 
+function getYesterdayStr() {
+  var d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 async function loadActualData() {
-  var dateInput = document.getElementById("queryDate");
-  var date = dateInput.value;
-  if (!date) {
-    date = new Date().toISOString().slice(0, 10);
-  }
+  var dateInput = document.getElementById('queryDate');
+  var date = dateInput ? dateInput.value : getYesterdayStr();
   try {
     var resp = await fetch(API_BASE + "/sales/summary-proxy?date=" + date);
     if (!resp.ok) throw new Error("HTTP " + resp.status);
@@ -565,6 +569,14 @@ async function loadActualData() {
 
 // init
 setAnimatedHeadlineText('正在整理业务数据并生成诊断结论');
+(function() {
+  var qd = document.getElementById('queryDate');
+  if (qd) {
+    var yesterday = getYesterdayStr();
+    qd.value = yesterday;
+    qd.setAttribute('max', yesterday);
+  }
+})();
 loadConfig().then(function() {
   if (currentData.todayRevenue == null) {
     loadDemo('green');
