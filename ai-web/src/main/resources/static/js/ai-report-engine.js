@@ -571,10 +571,18 @@ async function loadActualData() {
 setAnimatedHeadlineText('正在整理业务数据并生成诊断结论');
 (function() {
   var qd = document.getElementById('queryDate');
-  if (qd) {
+  if (qd && typeof layui !== 'undefined') {
     var yesterday = getYesterdayStr();
     qd.value = yesterday;
-    qd.setAttribute('max', yesterday);
+    layui.use('laydate', function() {
+      layui.laydate.render({
+        elem: '#queryDate',
+        format: 'yyyy-MM-dd',
+        value: yesterday,
+        max: yesterday,
+        trigger: 'click',
+      });
+    });
   }
 })();
 loadConfig().then(function() {

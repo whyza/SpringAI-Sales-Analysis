@@ -247,6 +247,19 @@ body {
 
 .date-input { height: 32px; padding: 0 8px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: border-color 0.15s; }
 .date-input:focus { outline: none; border-color: var(--blue-mid); }
+
+/* layDate theme */
+.layui-laydate { font-family: 'DM Sans', sans-serif; border-color: var(--border) !important; border-radius: var(--radius) !important; box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important; }
+.layui-laydate-header i { color: var(--text2); }
+.layui-laydate-header span { font-size: 14px; font-weight: 600; color: var(--text); }
+.layui-laydate-content th { font-size: 11px; font-weight: 600; color: var(--text3); }
+.layui-laydate-content td { border-radius: var(--radius-sm); }
+.layui-laydate-content td > div { border-radius: var(--radius-sm); transition: all 0.1s; }
+.layui-laydate-content td.layui-this > div { background: var(--text) !important; color: #fff !important; }
+.layui-laydate-content td:hover > div { background: var(--surface2) !important; }
+.layui-laydate-content td.layui-disabled > div { color: var(--text3) !important; }
+.layui-laydate-list > li.layui-this { background: var(--text) !important; color: #fff !important; }
+
 .btn-query { font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: var(--radius-sm); border: 1px solid var(--blue-mid); background: var(--blue-light); color: var(--blue); cursor: pointer; transition: all 0.12s; font-family: 'DM Sans', sans-serif; }
 .btn-query:hover { background: var(--blue-mid); }
 
