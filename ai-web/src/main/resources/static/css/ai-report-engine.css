@@ -221,6 +221,7 @@ body {
 .scenario-btn.red { border-color: var(--red-mid); background: var(--red-light); color: var(--red); }
 .scenario-btn.amber { border-color: var(--amber-mid); background: var(--amber-light); color: var(--amber); }
 .scenario-btn.green { border-color: var(--green-mid); background: var(--green-light); color: var(--green); }
+.scenario-btn.selected { outline: 2px solid currentColor; outline-offset: 2px; font-weight: 600; }
 
 /* Data Card */
 .data-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px; }

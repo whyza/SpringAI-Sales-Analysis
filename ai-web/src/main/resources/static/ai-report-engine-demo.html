@@ -147,9 +147,9 @@
 
         <div class="scenario-bar">
           <span style="font-size:12px;font-weight:500;color:var(--text2);line-height:32px;">演示数据：</span>
-          <button class="scenario-btn green" onclick="loadDemo('green')">绿色场景</button>
-          <button class="scenario-btn amber" onclick="loadDemo('mixed')">混合场景</button>
-          <button class="scenario-btn red" onclick="loadDemo('red')">红色场景</button>
+          <button class="scenario-btn green" data-scenario="green" onclick="loadDemo('green')">绿色场景</button>
+          <button class="scenario-btn amber" data-scenario="mixed" onclick="loadDemo('mixed')">混合场景</button>
+          <button class="scenario-btn red" data-scenario="red" onclick="loadDemo('red')">红色场景</button>
         </div>
         <div class="scenario-bar" style="margin-top:2px">
           <span style="font-size:12px;font-weight:500;color:var(--text2);line-height:32px;">实际数据：</span>
@@ -298,8 +298,8 @@
           <div class="push-row">
             <span class="push-label">推送渠道</span>
             <div class="opts" id="chOpts">
-              <span class="opt sel-ch" onclick="toggleCh(this)">钉钉</span>
-              <span class="opt" onclick="toggleCh(this)">飞书</span>
+              <span class="opt" onclick="toggleCh(this)">钉钉</span>
+              <span class="opt sel-ch" onclick="toggleCh(this)">飞书</span>
               <span class="opt" onclick="toggleCh(this)">系统通知</span>
             </div>
           </div>

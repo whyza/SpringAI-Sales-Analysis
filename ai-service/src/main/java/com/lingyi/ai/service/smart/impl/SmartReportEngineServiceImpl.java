@@ -126,13 +126,21 @@ public class SmartReportEngineServiceImpl implements SmartReportEngineService {
                 红色：销售额大幅下滑、大量链接下跌、大量链接未出单
                 黄色：销售额小幅下滑、部分链接下跌、部分链接未出单
                 绿色：销售额稳步增长、上涨链接占比亮眼
-                2. 红色文案固定为：🔴 **需立即关注：** {规则名称，逗号分隔}
-                3. 黄色文案固定为：🟡 **值得关注：** {规则名称，逗号分隔}
-                4. 绿色文案固定为：🟢 **本周运营状态良好！** {规则名称，逗号分隔}
-                5. 如果多级别同时触发，必须按红色、黄色、绿色顺序逐行输出。
-                6. 如果只有某一级触发，则只输出对应那一行。
-                7. 如果没有任何规则触发，只输出：📋 本日数据平稳，暂无明显异常
-                8. 只能依据输入数据和规则阈值判断，不能编造事实，不能补充解释。
+                2. 每条规则必须附带计算比例，用短描述符 + 百分比，格式为：**规则名称（{短描述符} 计算值%）**
+                   短描述符规则：
+                   - 销售额大幅下滑、销售额小幅下滑 → **降幅**
+                   - 销售额稳步增长 → **增幅**
+                   - 大量链接下跌、大量链接未出单、部分链接下跌、部分链接未出单、上涨链接占比亮眼 → **占比**
+                3. 红色文案固定为：🔴 **需立即关注：** {规则1（降幅/占比 计算值%），规则2（降幅/占比 计算值%），...}
+                   示例：🔴 **需立即关注：** 销售额大幅下滑（降幅 32.10%），大量链接下跌（占比 45.00%）
+                4. 黄色文案固定为：🟡 **值得关注：** {规则1（降幅/占比 计算值%），规则2（降幅/占比 计算值%），...}
+                   示例：🟡 **值得关注：** 销售额小幅下滑（降幅 8.50%）
+                5. 绿色文案固定为：🟢 **本周运营状态良好！** {规则1（增幅/占比 计算值%），规则2（增幅/占比 计算值%），...}
+                   示例：🟢 **本周运营状态良好！** 销售额稳步增长（增幅 15.20%），上涨链接占比亮眼（占比 52.00%）
+                6. 如果多级别同时触发，必须按红色、黄色、绿色顺序逐行输出。
+                7. 如果只有某一级触发，则只输出对应那一行。
+                8. 如果没有任何规则触发，只输出：📋 本日数据平稳，暂无明显异常
+                9. 只能依据输入数据和规则阈值判断，不能编造事实，不能补充解释。
 
                 ## 第二部分：运营诊断报告 - 严格遵循以下规则
 
@@ -180,6 +188,9 @@ public class SmartReportEngineServiceImpl implements SmartReportEngineService {
 
     private String buildFullReportPrompt(SmartReportRequestDTO req) {
         int todayTotalLinks = calculateTodayTotalLinks(req);
+
+        String rules = buildRuleDefinitions(req);
+
         return String.format(
                 """
                         ## 今日数据汇总
@@ -196,16 +207,10 @@ public class SmartReportEngineServiceImpl implements SmartReportEngineService {
                         昨天未出单链接数：%d
 
                         ## 客户自定义规则（阈值百分比均为绝对值，AI 自行计算判断是否命中）
-                        - 销售额大幅下滑：降幅 = (昨日 - 当天) ÷ 昨日 × 100%%，>= %s%% 触发
-                        - 大量链接下跌：下跌占比 = 当天下跌 ÷ 总链接 × 100%%，>= %s%% 触发
-                        - 大量链接未出单：未出单占比 = 当天未出单 ÷ 总链接 × 100%%，>= %s%% 触发
-                        - 销售额小幅下滑：降幅 = (昨日 - 当天) ÷ 昨日 × 100%%，>= %s%% 且 < R1 时触发
-                        - 部分链接下跌：下跌占比 = 当天下跌 ÷ 总链接 × 100%%，> 0 且 < %s%% 触发
-                        - 部分链接未出单：未出单占比 = 当天未出单 ÷ 总链接 × 100%%，> 0 且 < %s%% 触发
-                        - 销售额稳步增长：增幅 = (当天 - 昨日) ÷ 昨日 × 100%%，>= %s%% 触发
-                        - 上涨链接占比亮眼：上涨占比 = 当天上涨 ÷ 总链接 × 100%%，>= %s%% 触发
+                        %s
 
                         请基于以上数据和规则，生成完整的店铺诊断报告。
+                        请严格遵循系统提示词中【第一部分：诊断结论】的格式要求，每个命中规则必须附带【指标名称 计算值】。
                         """,
                 formatAmount(req.getYesterdayRevenue()),
                 formatAmount(req.getTodayRevenue()),
@@ -218,15 +223,22 @@ public class SmartReportEngineServiceImpl implements SmartReportEngineService {
                 todayTotalLinks,
                 safeInt(req.getTodayNoOrderLinks()),
                 safeInt(req.getYesterdayNoOrderLinks()),
-                formatAmount(req.getR1Threshold()),
-                formatAmount(req.getR2Threshold()),
-                formatAmount(req.getR3Threshold()),
-                formatAmount(req.getY1Threshold()),
-                formatAmount(req.getR2Threshold()),
-                formatAmount(req.getR3Threshold()),
-                formatAmount(req.getG1Threshold()),
-                formatAmount(req.getG2Threshold())
+                rules
         );
+    }
+
+    /**
+     * 构建客户自定义规则定义文本
+     */
+    private String buildRuleDefinitions(SmartReportRequestDTO req) {
+        return "- 销售额大幅下滑：降幅 = (昨日 - 当天) ÷ 昨日 × 100%，>= " + formatAmount(req.getR1Threshold()) + "% 触发\n"
+             + "- 大量链接下跌：下跌占比 = 当天下跌 ÷ 总链接 × 100%，>= " + formatAmount(req.getR2Threshold()) + "% 触发\n"
+             + "- 大量链接未出单：未出单占比 = 当天未出单 ÷ 总链接 × 100%，>= " + formatAmount(req.getR3Threshold()) + "% 触发\n"
+             + "- 销售额小幅下滑：降幅 = (昨日 - 当天) ÷ 昨日 × 100%，>= " + formatAmount(req.getY1Threshold()) + "% 且 < R1 时触发\n"
+             + "- 部分链接下跌：下跌占比 = 当天下跌 ÷ 总链接 × 100%，> 0 且 < " + formatAmount(req.getR2Threshold()) + "% 触发\n"
+             + "- 部分链接未出单：未出单占比 = 当天未出单 ÷ 总链接 × 100%，> 0 且 < " + formatAmount(req.getR3Threshold()) + "% 触发\n"
+             + "- 销售额稳步增长：增幅 = (当天 - 昨日) ÷ 昨日 × 100%，>= " + formatAmount(req.getG1Threshold()) + "% 触发\n"
+             + "- 上涨链接占比亮眼：上涨占比 = 当天上涨 ÷ 总链接 × 100%，>= " + formatAmount(req.getG2Threshold()) + "% 触发";
     }
 
     // ==================== AI 响应解析 ====================
@@ -361,7 +373,10 @@ public class SmartReportEngineServiceImpl implements SmartReportEngineService {
         if (!triggeredRules.getGreenAlerts().isEmpty()) {
             lines.add("🟢 **本周运营状态良好！** " + String.join("，", triggeredRules.getGreenAlerts()));
         }
-        return lines.isEmpty() ? DEFAULT_CONCLUSION : String.join("\n", lines);
+        if (lines.isEmpty()) {
+            return DEFAULT_CONCLUSION;
+        }
+        return String.join("\n", lines);
     }
 
     private String buildFallbackOperationDiagnosis(SmartReportRequestDTO req, String diagnosisConclusion) {
@@ -415,40 +430,50 @@ public class SmartReportEngineServiceImpl implements SmartReportEngineService {
         result.setYellowAlerts(new ArrayList<>());
         result.setGreenAlerts(new ArrayList<>());
 
+        // === 计算链接比例（统一计算，避免重复） ===
+        BigDecimal fallingRatio = BigDecimal.ZERO;
+        BigDecimal noOrderRatio = BigDecimal.ZERO;
+        BigDecimal risingRatio = BigDecimal.ZERO;
+        if (todayTotalLinks > 0) {
+            fallingRatio = calculateLinkRatio(req.getTodayFallingLinks(), todayTotalLinks);
+            noOrderRatio = calculateLinkRatio(req.getTodayNoOrderLinks(), todayTotalLinks);
+            risingRatio = calculateLinkRatio(req.getTodayRisingLinks(), todayTotalLinks);
+        }
+
+        // === 红色预警（诊断结论用短描述符：降幅 / 占比） ===
         if (revenueChange.compareTo(BigDecimal.ZERO) < 0 && revenueChange.abs().compareTo(req.getR1Threshold()) >= 0) {
-            result.getRedAlerts().add("销售额大幅下滑");
+            result.getRedAlerts().add("销售额大幅下滑（降幅 " + formatPercentFlat(revenueChange.abs()) + "）");
         }
         if (todayTotalLinks > 0) {
-            if (calculateLinkRatio(req.getTodayFallingLinks(), todayTotalLinks).compareTo(req.getR2Threshold()) >= 0) {
-                result.getRedAlerts().add("大量链接下跌");
+            if (fallingRatio.compareTo(req.getR2Threshold()) >= 0) {
+                result.getRedAlerts().add("大量链接下跌（占比 " + formatPercentFlat(fallingRatio) + "）");
             }
-            if (calculateLinkRatio(req.getTodayNoOrderLinks(), todayTotalLinks).compareTo(req.getR3Threshold()) >= 0) {
-                result.getRedAlerts().add("大量链接未出单");
+            if (noOrderRatio.compareTo(req.getR3Threshold()) >= 0) {
+                result.getRedAlerts().add("大量链接未出单（占比 " + formatPercentFlat(noOrderRatio) + "）");
             }
         }
 
+        // === 黄色预警（诊断结论用短描述符：降幅 / 占比） ===
         if (revenueChange.compareTo(BigDecimal.ZERO) < 0
                 && revenueChange.abs().compareTo(req.getY1Threshold()) >= 0
                 && revenueChange.abs().compareTo(req.getR1Threshold()) < 0) {
-            result.getYellowAlerts().add("销售额小幅下滑");
+            result.getYellowAlerts().add("销售额小幅下滑（降幅 " + formatPercentFlat(revenueChange.abs()) + "）");
         }
         if (todayTotalLinks > 0) {
-            BigDecimal fallingRatio = calculateLinkRatio(req.getTodayFallingLinks(), todayTotalLinks);
-            BigDecimal noOrderRatio = calculateLinkRatio(req.getTodayNoOrderLinks(), todayTotalLinks);
             if (safeInt(req.getTodayFallingLinks()) > 0 && fallingRatio.compareTo(req.getR2Threshold()) < 0) {
-                result.getYellowAlerts().add("部分链接下跌");
+                result.getYellowAlerts().add("部分链接下跌（占比 " + formatPercentFlat(fallingRatio) + "）");
             }
             if (safeInt(req.getTodayNoOrderLinks()) > 0 && noOrderRatio.compareTo(req.getR3Threshold()) < 0) {
-                result.getYellowAlerts().add("部分链接未出单");
+                result.getYellowAlerts().add("部分链接未出单（占比 " + formatPercentFlat(noOrderRatio) + "）");
             }
         }
 
+        // === 绿色亮点（诊断结论用短描述符：增幅 / 占比） ===
         if (revenueChange.compareTo(req.getG1Threshold()) >= 0) {
-            result.getGreenAlerts().add("销售额稳步增长");
+            result.getGreenAlerts().add("销售额稳步增长（增幅 " + formatPercentFlat(revenueChange) + "）");
         }
-        if (todayTotalLinks > 0
-                && calculateLinkRatio(req.getTodayRisingLinks(), todayTotalLinks).compareTo(req.getG2Threshold()) >= 0) {
-            result.getGreenAlerts().add("上涨链接占比亮眼");
+        if (todayTotalLinks > 0 && risingRatio.compareTo(req.getG2Threshold()) >= 0) {
+            result.getGreenAlerts().add("上涨链接占比亮眼（占比 " + formatPercentFlat(risingRatio) + "）");
         }
 
         return result;
@@ -489,6 +514,10 @@ public class SmartReportEngineServiceImpl implements SmartReportEngineService {
         BigDecimal safe = defaultDecimal(value);
         String prefix = safe.compareTo(BigDecimal.ZERO) >= 0 ? "↑" : "↓";
         return prefix + safe.abs().setScale(2, RoundingMode.HALF_UP).toPlainString() + "%";
+    }
+
+    private String formatPercentFlat(BigDecimal value) {
+        return defaultDecimal(value).setScale(2, RoundingMode.HALF_UP).toPlainString() + "%";
     }
 
     private String formatAmount(BigDecimal value) {

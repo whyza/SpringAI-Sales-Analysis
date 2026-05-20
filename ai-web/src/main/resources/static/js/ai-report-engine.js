@@ -170,6 +170,11 @@ async function loadDemo(key) {
       body: JSON.stringify(currentData)
     });
   } catch(e) {}
+  // 标记选中按钮
+  var btns = document.querySelectorAll('.scenario-btn');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.remove('selected');
+  var clicked = document.querySelector('.scenario-btn[data-scenario="' + key + '"]');
+  if (clicked) clicked.classList.add('selected');
   showToast('已加载' + demo.label);
 }
 
