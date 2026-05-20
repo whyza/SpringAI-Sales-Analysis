@@ -399,6 +399,16 @@ function renderResult(data) {
   resultContent.classList.remove('show');
   void resultContent.offsetWidth;
   resultContent.classList.add('show');
+
+  // 分析完成后发送消息
+  var msgDate = currentData.reportDate || new Date().toISOString().slice(0, 10);
+  try {
+    fetch(API_BASE + '/sales/sendMsg?date=' + msgDate, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch (e) {}
 }
 
 function formatDiagnosisConclusion(dc) {
@@ -524,24 +534,32 @@ function showToast(msg, isError) {
   setTimeout(function() { t.className = 'toast'; }, 2800);
 }
 
-async function loadHistoryData() {
-  var dateInput = document.getElementById('historyDate');
+async function loadActualData() {
+  var dateInput = document.getElementById("queryDate");
   var date = dateInput.value;
-  if (!date) { showToast('请选择日期', true); return; }
+  if (!date) {
+    date = new Date().toISOString().slice(0, 10);
+  }
   try {
-    var resp = await fetch(API_BASE + '/smart-report/config/load?date=' + date);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    var data = await resp.json();
-    if (data.code === 200 && data.data && data.data.todayRevenue != null) {
-      currentData = { reportDate: date };
-      for (var k in data.data) { currentData[k] = data.data[k]; }
-      updateDataDisplay(data.data);
-      showToast('已加载 ' + date + ' 的历史数据');
+    var resp = await fetch(API_BASE + "/sales/summary-proxy?date=" + date);
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    var result = await resp.json();
+    if (result.code === 200 && result.data) {
+      var innerData = JSON.parse(result.data);
+      var bizData = innerData.data;
+      if (bizData) {
+        currentData = { reportDate: date };
+        for (var k in bizData) { currentData[k] = bizData[k]; }
+        updateDataDisplay(bizData);
+        showToast("已加载 " + date + " 实际数据");
+      } else {
+        showToast(date + " 无实际数据", true);
+      }
     } else {
-      showToast(date + ' 无历史数据', true);
+      showToast(date + " 无实际数据", true);
     }
   } catch (e) {
-    showToast('加载失败：' + e.message, true);
+    showToast("获取实际数据失败: " + e.message, true);
   }
 }
 

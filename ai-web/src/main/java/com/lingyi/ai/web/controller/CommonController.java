@@ -15,6 +15,8 @@ import com.lingyi.ai.service.ai.AiAnalysisService;
 import com.lingyi.ai.service.smart.SmartReportConfigService;
 import com.lingyi.ai.service.smart.SmartReportEngineService;
 import com.lingyi.ai.service.smart.SmartRuleConfigService;
+import com.lingyi.ai.service.util.SalesMessageClient;
+import com.lingyi.ai.service.util.SalesSummaryClient;
 import com.lingyi.ai.web.scheduler.DailyReportScheduler;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +26,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -57,6 +57,12 @@ public class CommonController {
 
     @Resource
     private SmartRuleConfigService smartRuleConfigService;
+
+    @Resource
+    private SalesSummaryClient salesSummaryClient;
+
+    @Resource
+    private SalesMessageClient salesMessageClient;
 
     /**
      * 批量生成测试数据（近 N 天）
@@ -178,13 +184,15 @@ public class CommonController {
 
         Thread.ofVirtual().start(() -> {
             try {
-                SmartReportResultVO result = smartReportEngineService.analyze(req, step -> {
-                    try {
-                        emitter.send(SseEmitter.event().name("progress").data(step));
-                    } catch (IOException e) {
-                        // client disconnected
-                    }
-                });
+                SmartReportResultVO result = smartReportEngineService.analyze(
+                        req, step -> {
+                            try {
+                                emitter.send(SseEmitter.event().name("progress").data(step));
+                            } catch (IOException e) {
+                                // client disconnected
+                            }
+                        }
+                );
                 emitter.send(SseEmitter.event().name("result").data(result));
                 emitter.complete();
             } catch (Exception e) {
@@ -293,6 +301,42 @@ public class CommonController {
         } catch (Exception e) {
             log.error("周期总结失败", e);
             return Result.error("周期总结失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 代理销售汇总查询（调用外部服务）
+     *
+     * @param date 日期 yyyy-MM-dd
+     * @return 销售汇总数据
+     */
+    @GetMapping("/sales/summary-proxy")
+    public Result<String> proxySalesSummary(@RequestParam("date") String date) {
+        log.info("代理销售汇总查询，date={}", date);
+        try {
+            String data = salesSummaryClient.fetchSummary(date);
+            return Result.success(data);
+        } catch (Exception e) {
+            log.error("代理销售汇总查询失败", e);
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 发送销售消息
+     *
+     * @param date    日期 yyyy-MM-dd
+     * @param message 消息正文
+     */
+    @PostMapping("/sales/sendMsg")
+    public Result<Void> sendSalesMessage(@RequestParam("date") String date, @RequestBody String message) {
+        log.info("发送销售消息，date={}", date);
+        try {
+            salesMessageClient.sendMessage(date, message);
+            return Result.success(null);
+        } catch (Exception e) {
+            log.error("发送销售消息失败", e);
+            return Result.error(e.getMessage());
         }
     }
 
