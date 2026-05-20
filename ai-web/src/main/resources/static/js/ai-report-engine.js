@@ -163,13 +163,6 @@ async function loadDemo(key) {
   currentData = { reportDate: today };
   for (var k in demo) { currentData[k] = demo[k]; }
   updateDataDisplay(demo);
-  try {
-    await fetch(API_BASE + '/smart-report/config/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(currentData)
-    });
-  } catch(e) {}
   // 标记选中按钮
   var btns = document.querySelectorAll('.scenario-btn');
   for (var i = 0; i < btns.length; i++) btns[i].classList.remove('selected');
