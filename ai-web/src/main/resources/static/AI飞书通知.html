@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飞书智能诊断报告 · 对比展示</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+    background: #0f0f0f;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 16px;
+  }
+
+  .page-title {
+    color: #888;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .phones-row {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .phone-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .phone-label {
+    font-size: 13px;
+    color: #555;
+    letter-spacing: 0.05em;
+  }
+  .phone-label.normal { color: #4ade80; }
+  .phone-label.alert  { color: #f87171; }
+
+  /* iPhone frame */
+  .iphone {
+    width: 320px;
+    height: 660px;
+    background: #1a1a1a;
+    border-radius: 48px;
+    border: 2px solid #333;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px #111,
+      inset 0 0 0 1px #2a2a2a,
+      0 40px 80px rgba(0,0,0,0.6);
+  }
+
+  /* Side buttons */
+  .iphone::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 100px;
+    width: 3px;
+    height: 34px;
+    background: #2a2a2a;
+    border-radius: 2px 0 0 2px;
+    box-shadow: 0 44px 0 #2a2a2a, 0 88px 0 #2a2a2a;
+  }
+  .iphone::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 140px;
+    width: 3px;
+    height: 60px;
+    background: #2a2a2a;
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 44px;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #111;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .status-bar .notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 30px;
+    background: #1a1a1a;
+    border-radius: 0 0 20px 20px;
+  }
+  .status-icons { display: flex; gap: 5px; align-items: center; font-size: 11px; }
+
+  /* Feishu app chrome */
+  .app-bar {
+    background: #fff;
+    border-bottom: 0.5px solid #e5e5e5;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #1456F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .app-bar-info { flex: 1; min-width: 0; }
+  .app-bar-name { font-size: 14px; font-weight: 500; color: #111; }
+  .app-bar-sub  { font-size: 11px; color: #999; }
+
+  /* Scroll area */
+  .scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    background: #f0f2f5;
+    display: flex;
+    flex-direction: column;
+  }
+  .scroll-area::-webkit-scrollbar { display: none; }
+
+  .chat-wrapper {
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .msg-time {
+    text-align: center;
+    font-size: 11px;
+    color: #aaa;
+    margin: 4px 0 8px;
+  }
+
+  .msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .bot-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #1456F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+  }
+
+  /* Card */
+  .fk-card {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 12px;
+    color: #1a1a1a;
+    flex: 1;
+    min-width: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+
+  .fk-header {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 0.5px solid rgba(0,0,0,0.06);
+  }
+  .fk-header.normal { background: #F0FDF4; }
+  .fk-header.alert  { background: #FFF1F0; }
+  .fk-header-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .fk-header-dot.normal { background: #22c55e; }
+  .fk-header-dot.alert  { background: #ef4444; }
+  .fk-header-title {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .fk-header-title.normal { color: #15803d; }
+  .fk-header-title.alert  { color: #b91c1c; }
+
+  .fk-section {
+    padding: 10px 12px;
+    border-bottom: 0.5px solid #f0f0f0;
+  }
+  .fk-section:last-child { border-bottom: none; }
+
+  .sec-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: #888;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sec-title-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .metric {
+    background: #fafafa;
+    border-radius: 7px;
+    padding: 7px 9px;
+    border: 0.5px solid #f0f0f0;
+  }
+  .metric-label { font-size: 10px; color: #aaa; margin-bottom: 3px; }
+  .metric-value { font-size: 15px; font-weight: 600; }
+  .metric-value.green  { color: #16a34a; }
+  .metric-value.red    { color: #dc2626; }
+  .metric-value.gray   { color: #9ca3af; }
+  .metric-value.amber  { color: #d97706; }
+  .metric-sub { font-size: 10px; margin-top: 2px; }
+  .metric-sub.up   { color: #16a34a; }
+  .metric-sub.down { color: #dc2626; }
+
+  .alert-box {
+    background: #FFF1F0;
+    border-left: 3px solid #ef4444;
+    border-radius: 0 6px 6px 0;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: #b91c1c;
+  }
+  .alert-box .alert-title {
+    font-weight: 600;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .healthy-box {
+    background: #F0FDF4;
+    border-left: 3px solid #22c55e;
+    border-radius: 0 6px 6px 0;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: #15803d;
+  }
+  .healthy-box .alert-title {
+    font-weight: 600;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .row-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    font-size: 11px;
+    border-bottom: 0.5px solid #f5f5f5;
+  }
+  .row-line:last-child { border-bottom: none; }
+  .row-line .lk { color: #555; }
+  .row-line .rk { font-weight: 500; }
+  .row-line .rk.g { color: #16a34a; }
+  .row-line .rk.r { color: #dc2626; }
+  .row-line .rk.n { color: #999; }
+
+  .suggest-item {
+    display: flex;
+    gap: 6px;
+    font-size: 11px;
+    color: #444;
+    padding: 3px 0;
+    line-height: 1.6;
+    align-items: flex-start;
+  }
+  .suggest-icon { color: #22c55e; flex-shrink: 0; margin-top: 1px; }
+  .warn-icon { color: #f59e0b; flex-shrink: 0; margin-top: 1px; }
+
+  .prose {
+    font-size: 11px;
+    color: #555;
+    line-height: 1.7;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .tag.g { background: #dcfce7; color: #15803d; }
+  .tag.r { background: #fee2e2; color: #b91c1c; }
+  .tag.n { background: #f3f4f6; color: #6b7280; }
+  .tag.a { background: #fef3c7; color: #92400e; }
+
+  .fk-footer {
+    padding: 8px 12px;
+    background: #fafafa;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #bbb;
+  }
+
+  .iphone-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #f0f2f5;
+  }
+</style>
+</head>
+<body>
+
+<p class="page-title">智能报告中心 · 飞书消息卡片预览</p>
+
+<div class="phones-row">
+
+  <!-- 正常状态 -->
+  <div class="phone-col">
+    <div class="phone-label normal">&#10003; 正常状态</div>
+    <div class="iphone">
+      <div class="iphone-inner">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="notch"></div>
+          <div class="status-icons">
+            <span>●●●</span>
+            <span>WiFi</span>
+            <span>100%</span>
+          </div>
+        </div>
+        <div class="app-bar">
+          <div class="avatar">AI</div>
+          <div class="app-bar-info">
+            <div class="app-bar-name">智能报告助手</div>
+            <div class="app-bar-sub">每日 08:00 准时推送</div>
+          </div>
+        </div>
+        <div class="scroll-area">
+          <div class="chat-wrapper">
+            <div class="msg-time">今日 08:01</div>
+            <div class="msg-row">
+              <div class="bot-avatar">AI</div>
+              <div class="fk-card">
+
+                <div class="fk-header normal">
+                  <div class="fk-header-dot normal"></div>
+                  <span class="fk-header-title normal">智能诊断报告</span>
+                  <span style="margin-left:auto;font-size:10px;color:#16a34a;font-weight:500">健康</span>
+                </div>
+
+                <div class="fk-section">
+                  <div class="sec-title"><span class="sec-title-dot" style="color:#888"></span>核心指标概览</div>
+                  <div class="metrics-grid">
+                    <div class="metric">
+                      <div class="metric-label">当天销售额</div>
+                      <div class="metric-value green">¥28,540</div>
+                      <div class="metric-sub up">↑ 12.3% vs 昨日</div>
+                    </div>
+                    <div class="metric">
+                      <div class="metric-label">当天订单量</div>
+                      <div class="metric-value green">186 单</div>
+                      <div class="metric-sub up">↑ 8.7% vs 昨日</div>
+                    </div>
+                    <div class="metric">
+                      <div class="metric-label">上涨链接</div>
+                      <div class="metric-value green">312</div>
+                    </div>
+                    <div class="metric">
+                      <div class="metric-label">下跌链接</div>
+                      <div class="metric-value amber">47</div>
+                    </div>
+                  </div>
+                  <div class="metric" style="margin-top:6px">
+                    <div class="metric-label">未出单链接</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                      <div class="metric-value green">23</div>
+                      <span class="tag g">0.39% · 正常范围</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="fk-section" style="padding:0">
+                  <div class="healthy-box">
+                    <div class="alert-title">&#10003; 整体健康</div>
+                    <div>今日各项指标均在正常范围内，无需特别干预。</div>
+                  </div>
+                </div>
+
+                <div class="fk-section">
+                  <div class="sec-title"><span class="sec-title-dot" style="color:#888"></span>链接结构分析</div>
+                  <div class="row-line">
+                    <span class="lk"><span class="tag g">上涨链接</span></span>
+                    <span class="rk g">312 &nbsp;(52.9%)</span>
+                  </div>
+                  <div class="row-line">
+                    <span class="lk"><span class="tag r">下跌链接</span></span>
+                    <span class="rk r">47 &nbsp;(8.0%)</span>
+                  </div>
+                  <div class="row-line">
+                    <span class="lk"><span class="tag n">平稳链接</span></span>
+                    <span class="rk n">207 &nbsp;(35.1%)</span>
+                  </div>
+                  <div class="row-line">
+                    <span class="lk"><span class="tag a">未出单</span></span>
+                    <span class="rk n">23 &nbsp;(3.9%)</span>
+                  </div>
+                </div>
+
+                <div class="fk-section">
+                  <div class="sec-title"><span class="sec-title-dot" style="color:#888"></span>运营建议</div>
+                  <div class="suggest-item">
+                    <span class="suggest-icon">✓</span>
+                    <span>重点关注下跌链接中的 Top 5，考虑小幅调价刺激转化。</span>
+                  </div>
+                  <div class="suggest-item">
+                    <span class="suggest-icon">✓</span>
+                    <span>23 条未出单链接可补充主图 A/B 测试，优化点击率。</span>
+                  </div>
+                  <div class="suggest-item">
+                    <span class="suggest-icon">✓</span>
+                    <span>整体势头良好，维持现有广告预算，避免大幅变动。</span>
+                  </div>
+                </div>
+
+                <div class="fk-footer">
+                  <span>田翔</span>
+                  <span>2026-05-18 &nbsp;08:01</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 异常状态 -->
+  <div class="phone-col">
+    <div class="phone-label alert">&#9888; 异常状态</div>
+    <div class="iphone">
+      <div class="iphone-inner">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="notch"></div>
+          <div class="status-icons">
+            <span>●●●</span>
+            <span>WiFi</span>
+            <span>100%</span>
+          </div>
+        </div>
+        <div class="app-bar">
+          <div class="avatar">AI</div>
+          <div class="app-bar-info">
+            <div class="app-bar-name">智能报告助手</div>
+            <div class="app-bar-sub">每日 08:00 准时推送</div>
+          </div>
+        </div>
+        <div class="scroll-area">
+          <div class="chat-wrapper">
+            <div class="msg-time">今日 08:01</div>
+            <div class="msg-row">
+              <div class="bot-avatar">AI</div>
+              <div class="fk-card">
+
+                <div class="fk-header alert">
+                  <div class="fk-header-dot alert"></div>
+                  <span class="fk-header-title alert">智能诊断报告</span>
+                  <span style="margin-left:auto;font-size:10px;color:#b91c1c;font-weight:500">最高预警</span>
+                </div>
+
+                <div class="fk-section">
+                  <div class="sec-title"><span class="sec-title-dot" style="color:#888"></span>核心指标概览</div>
+                  <div class="metrics-grid">
+                    <div class="metric">
+                      <div class="metric-label">当天销售额</div>
+                      <div class="metric-value gray">¥0</div>
+                      <div class="metric-sub down">↓ 100% vs 昨日</div>
+                    </div>
+                    <div class="metric">
+                      <div class="metric-label">当天订单量</div>
+                      <div class="metric-value gray">0 单</div>
+                      <div class="metric-sub down">↓ 100% vs 昨日</div>
+                    </div>
+                    <div class="metric">
+                      <div class="metric-label">上涨链接</div>
+                      <div class="metric-value gray">0</div>
+                    </div>
+                    <div class="metric">
+                      <div class="metric-label">下跌链接</div>
+                      <div class="metric-value gray">0</div>
+                    </div>
+                  </div>
+                  <div class="metric" style="margin-top:6px;background:#fff0f0;border-color:#fecaca">
+                    <div class="metric-label" style="color:#dc2626">未出单链接</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                      <div class="metric-value red">5,978</div>
+                      <span class="tag r">100% · 全店停摆</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="fk-section" style="padding:0">
+                  <div class="alert-box">
+                    <div class="alert-title">&#9679; 立即关注</div>
+                    <div>大量链接未出单，已触发最高级别预警</div>
+                  </div>
+                </div>
+
+                <div class="fk-section">
+                  <div class="sec-title"><span class="sec-title-dot" style="color:#888"></span>整体表现</div>
+                  <div class="prose">
+                    连续两日零销售，非降价导致，属于流量与转化完全断流。已触发最高级别行情预警。
+                  </div>
+                </div>
+
+                <div class="fk-section">
+                  <div class="sec-title"><span class="sec-title-dot" style="color:#888"></span>异常逻辑判断</div>
+                  <div class="suggest-item">
+                    <span class="warn-icon">▲</span>
+                    <span>账户权限：是否因二审或侵权导致销售权限暂停。</span>
+                  </div>
+                  <div class="suggest-item">
+                    <span class="warn-icon">▲</span>
+                    <span>Listing 状态：是否遭遇批量变狗或品牌授权失效。</span>
+                  </div>
+                  <div class="suggest-item">
+                    <span class="warn-icon">▲</span>
+                    <span>FBA/库存：是否全部不可售或仓内接收异常。</span>
+                  </div>
+                </div>
+
+                <div class="fk-section">
+                  <div class="sec-title"><span class="sec-title-dot" style="color:#888"></span>运营建议</div>
+                  <div class="suggest-item">
+                    <span class="suggest-icon">✓</span>
+                    <span>优先核对账户健康状况，确认销售权限是否正常。</span>
+                  </div>
+                  <div class="suggest-item">
+                    <span class="suggest-icon">✓</span>
+                    <span>抽查头部 Listing 前台，确认是否批量变狗。</span>
+                  </div>
+                  <div class="suggest-item">
+                    <span class="suggest-icon">✓</span>
+                    <span>零单期间禁止调价、动广告，待查明原因后再操作。</span>
+                  </div>
+                </div>
+
+                <div class="fk-footer">
+                  <span>田翔</span>
+                  <span>2026-05-18 &nbsp;08:01</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
