@@ -3,4 +3,5 @@
 /ai-model/target/
 /ai-dal/target/
 /ai-web/target/
+/ai-web/src/main/resources/application.yml
 /.idea/
