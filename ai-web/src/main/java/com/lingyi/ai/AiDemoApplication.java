@@ -11,7 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * @author lingyi
  */
 @SpringBootApplication
-@MapperScan("com.lingyi.ai.dal.mapper")
+@MapperScan("com.lingyi.ai.modules.smartreport.repository")
 @EnableScheduling
 public class AiDemoApplication {
 
