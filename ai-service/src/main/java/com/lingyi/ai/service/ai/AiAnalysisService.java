@@ -1,8 +1,5 @@
 package com.lingyi.ai.service.ai;
 
-import com.lingyi.ai.model.dto.EcommerceDataDTO;
-import com.lingyi.ai.model.vo.DailyReportPushVO;
-
 /**
  * AI 分析服务接口
  *
@@ -18,13 +15,5 @@ public interface AiAnalysisService {
      * @return AI 分析结果
      */
     String callAiAnalysis(String systemPrompt, String userPrompt);
-
-    /**
-     * 生成电商日报（包含 AI 分析和建议）
-     *
-     * @param dataDTO 电商数据
-     * @return 日报推送数据
-     */
-    DailyReportPushVO generateDailyReport(EcommerceDataDTO dataDTO);
 
 }
